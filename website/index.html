@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fibonacci Split Algorithm Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 20px;
+        }
+        canvas {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        #log {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            text-align: left;
+            width: 80%;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Fibonacci Split Algorithm Visualization</h1>
+
+<!-- Line Graph -->
+<canvas id="fibGraph" width="800" height="400"></canvas>
+
+<!-- Console log area -->
+<div id="log"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const fibGraph = document.getElementById('fibGraph').getContext('2d');
+
+    // Data structure to store progress for the graph
+    const data = {
+        labels: [],
+        datasets: [
+            {
+                label: 'Fibonacci Sequence',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                data: [],
+                fill: false,
+                tension: 0.1,
+            },
+            {
+                label: 'Trying new number',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                data: [],
+                fill: false,
+                tension: 0.1,
+                borderDash: [5, 5], // Dotted line style for trying a number
+            },
+            {
+                label: 'Backtracking',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                data: [],
+                fill: false,
+                tension: 0.1,
+                borderDash: [10, 5], // Dotted line style for backtracking
+            }
+        ]
+    };
+
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            scales: {
+                x: {
+                    title: { display: true, text: 'Recursive Step' },
+                },
+                y: {
+                    title: { display: true, text: 'Fibonacci Value' },
+                    beginAtZero: true
+                }
+            },
+            responsive: true
+        }
+    };
+
+    const fibChart = new Chart(fibGraph, config);
+
+    let log = document.getElementById('log');
+    let logContent = [];
+
+    // Function to log the algorithm's actions
+    function logMessage(msg) {
+        logContent.push(msg);
+        if (logContent.length > 10) {
+            logContent.shift();
+        }
+        log.textContent = logContent.join('\n');
+    }
+
+    // Recursive DFS function to generate the Fibonacci sequence
+    function splitIntoFibonacci(num) {
+        let list = [];
+        let digit = num.split('').map(Number);
+        dfs(digit, list, 0);
+        return list;
+    }
+
+    // Recursive depth-first search with visualization steps
+    function dfs(digit, list, index) {
+        logMessage(`DFS called with index: ${index} and current list: ${list}`);
+
+        // Base case: reached the end of the string and have at least 3 numbers
+        if (index === digit.length && list.length >= 3) {
+            logMessage(`Found valid Fibonacci sequence: ${list}`);
+            updateGraph(list, 'Fibonacci Sequence');
+            return true;
+        }
+
+        // Try different splits of the string and attempt to form numbers
+        for (let i = index; i < digit.length; i++) {
+            // Skip numbers with leading zero unless it's just "0"
+            if (digit[index] === 0 && i > index) {
+                logMessage(`Skipping due to leading zero from index ${index} to ${i}`);
+                break;
+            }
+
+            let num = parseInt(digit.slice(index, i + 1).join(''), 10);
+            logMessage(`Trying substring from index ${index} to ${i + 1} -> num: ${num}`);
+
+            // If the number is too large, break out of the loop
+            if (num > Number.MAX_SAFE_INTEGER) {
+                logMessage(`Number too large, breaking out: ${num}`);
+                break;
+            }
+
+            // If the list has at least two numbers, check if the current number is valid
+            if (list.length >= 2 && num > list[list.length - 1] + list[list.length - 2]) {
+                logMessage(`Number is greater than the sum of the last two numbers, breaking: ${num}`);
+                break;
+            }
+
+            // Add the number to the list if it satisfies the Fibonacci condition
+            if (list.length <= 1 || num === list[list.length - 1] + list[list.length - 2]) {
+                logMessage(`Adding ${num} to the list`);
+                list.push(num);
+                updateGraph(list, 'Fibonacci Sequence');
+
+                // Recursively call DFS
+                if (dfs(digit, list, i + 1)) {
+                    return true;
+                }
+
+                // Backtrack if the current sequence does not lead to a solution
+                logMessage(`Backtracking from list: ${list}`);
+                list.pop();
+                updateGraph(list, 'Backtracking');
+            }
+        }
+
+        logMessage(`Returning false from index ${index} with list: ${list}`);
+        return false;
+    }
+
+    // Function to update the graph with current Fibonacci sequence
+    function updateGraph(list, actionType) {
+        data.labels.push(data.labels.length + 1);  // Add new step to x-axis
+        let lastValue = list[list.length - 1];  // Get the last Fibonacci number
+
+        if (actionType === 'Fibonacci Sequence') {
+            data.datasets[0].data.push(lastValue);  // Add to Fibonacci Sequence dataset
+        } else if (actionType === 'Backtracking') {
+            data.datasets[2].data.push(lastValue);  // Add to Backtracking dataset
+        } else {
+            data.datasets[1].data.push(lastValue);  // Add to Trying new number dataset
+        }
+
+        fibChart.update();  // Update the chart
+    }
+
+    // Example input to the algorithm
+    const result = splitIntoFibonacci("1101111");
+    logMessage(`Resulting Fibonacci sequence: ${result}`);
+</script>
+
+</body>
+</html>
